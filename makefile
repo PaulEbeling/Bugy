@@ -7,7 +7,7 @@ FLAGS	 = -g -c -Wall
 LFLAGS	 =
 
 all: $(OBJS)
-	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) -lwiringPi
+	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) -lwiringPi -lsfml-window -lsfml-system
 
 adafruitdcmotor.o: adafruitdcmotor.cpp
 	$(CC) $(FLAGS) adafruitdcmotor.cpp
@@ -19,7 +19,7 @@ i2cdevice.o: i2cdevice.cpp
 	$(CC) $(FLAGS) i2cdevice.cpp
 
 main.o: main.cpp
-	$(CC) $(FLAGS) -lwiringPi main.cpp
+	$(CC) $(FLAGS) -lwiringPi -lsfml-window -lsfml-system main.cpp
 
 pwm.o: pwm.cpp
 	$(CC) $(FLAGS) pwm.cpp

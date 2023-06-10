@@ -7,12 +7,17 @@
 float fd;
 std::vector<double> cali;
 
+
+/**
+ * Initializes all functions of the Gyrosensor
+ */
 void gyro_init(){
     fd = wiringPiI2CSetup(0x68);
-    wiringPiI2CWriteReg8 (fd, SMPLRT_DIV, 128);
-    wiringPiI2CWriteReg8 (fd, PWR_MGMT_1, 0x01); //PLL with X axis gyroscope reference
+    wiringPiI2CWriteReg8 (fd, SMPRT_DIV, 128); //Samplerate Divider
+    wiringPiI2CWriteReg8 (fd, PWR_MGMT_1, 0x01); //PLL with X axis gyroscope reference; to get a more accurate clock
     wiringPiI2CWriteReg8 (fd, CONFIG, 0); //Input disabled
     wiringPiI2CWriteReg8 (fd, GYRO_CONFIG, 0b00011000); //Full Scale Range +- 2000 °/s
+    wiringPiI2CWriteReg8 (fd, ACCEL_CONFIG, 0b00011000); //Full Scale Range +- 16 g
     wiringPiI2CWriteReg8 (fd, INT_ENABLE, 0x01); //Data Ready Interrupt
 
     cali = std::vector<double>(3);
@@ -22,14 +27,22 @@ void gyro_init(){
     calibration();
 }
 
+/**
+ * Gets Data over i2c of specific address
+ * @param addr Address which should be read
+ * @return value of specific data
+ */
 short read_raw_data(int addr){
-    short high_byte,low_byte,value;
+    short high_byte,low_byte;
     high_byte = wiringPiI2CReadReg8(fd, addr);
     low_byte = wiringPiI2CReadReg8(fd, addr+1);
-    value = (high_byte << 8) | low_byte;
-    return value;
+    return (high_byte << 8) | low_byte;
 }
 
+/**
+ * return xyz-values of the Gyrosensor
+ * @return
+ */
 std::vector<double> get_xyz(){
     std::vector<double> xyz(3);
 
@@ -40,6 +53,9 @@ std::vector<double> get_xyz(){
     return xyz;
 }
 
+/**
+ * Calibrates the Gyrosensor
+ */
 void calibration(){
     std::vector<double> xyz(3);
     std::vector<double> xyz_temp(3);
