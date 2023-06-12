@@ -16,8 +16,8 @@ void gyro_init(){
     wiringPiI2CWriteReg8 (fd, SMPRT_DIV, 128); //Samplerate Divider
     wiringPiI2CWriteReg8 (fd, PWR_MGMT_1, 0x01); //PLL with X axis gyroscope reference; to get a more accurate clock
     wiringPiI2CWriteReg8 (fd, CONFIG, 0); //Input disabled
-    wiringPiI2CWriteReg8 (fd, GYRO_CONFIG, 0b00011000); //Full Scale Range +- 2000 °/s
-    wiringPiI2CWriteReg8 (fd, ACCEL_CONFIG, 0b00011000); //Full Scale Range +- 16 g
+    wiringPiI2CWriteReg8 (fd, GYRO_CONFIG, 0b00001000); //Full Scale Range +- 500 °/s
+    wiringPiI2CWriteReg8 (fd, ACCEL_CONFIG, 0b00001000); //Full Scale Range +- 4 g
     wiringPiI2CWriteReg8 (fd, INT_ENABLE, 0x01); //Data Ready Interrupt
 
     cali = std::vector<double>(3);
@@ -46,9 +46,9 @@ short read_raw_data(int addr){
 std::vector<double> get_xyz(){
     std::vector<double> xyz(3);
 
-    xyz[0] = (read_raw_data(GYRO_XOUT_H) / 16.4) - cali[0];
-    xyz[1] = (read_raw_data(GYRO_YOUT_H) / 16.4) - cali[1];
-    xyz[2] = (read_raw_data(GYRO_ZOUT_H) / 16.4) - cali[2];
+    xyz[0] = (read_raw_data(GYRO_XOUT_H) / 65.5) - cali[0];
+    xyz[1] = (read_raw_data(GYRO_YOUT_H) / 65.5) - cali[1];
+    xyz[2] = (read_raw_data(GYRO_ZOUT_H) / 65.5) - cali[2];
 
     return xyz;
 }
