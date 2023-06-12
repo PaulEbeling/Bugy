@@ -155,7 +155,7 @@ void straight(double milli_sec, struct js_event* alt) {
  * Dirves an 90 degree angle
  * @param left true it drives left round; false it is moving right round
  */
-void left(bool left, float degree) {
+void left(bool left, float degree, bool manuel = false) {
     //initialize vectors for xyz
     std::vector<double> xyz(3);
     std::vector<double> xyz2(3);
@@ -166,18 +166,49 @@ void left(bool left, float degree) {
     unsigned long pre_time = micros(), aft_time = micros(), last_time = 0; //initialize time
     motor->run(left ? AdafruitDCMotor::kBackward : AdafruitDCMotor::kForward);
 
-    //run motors until 84 degrees are reached; 84 -> because it works better, motors need timer to stop
-    for (double/* x = 0, y = 0,*/ z = 0; z < degree - 6 && z > -degree + 6;) {
-        xyz = get_xyz();/*
+    if(manuel){
+        struct js_event event;
+        while (read(gamepad, &event, sizeof(event)) > 0){
+            if (event.type == JS_EVENT_BUTTON){
+                int button = event.number;
+                int value = event.value;
+                std::cout << "Bin in haupt Button:  " << button << "  Value:  " << value << "\n";
+
+                if(left){
+                    if(button == 2 && value == 0)
+                        break;
+                } else{
+                    if(button == 1 && value == 0)
+                        break;
+                }
+            }
+
+            xyz = get_xyz();/*
         x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
         y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
-        z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z axes
-        // divided by 1000000 because of microseconds and * 2 because area of parallelogram
-        //std::cout << x << "  " << y << "  " << z << "  " << last_time << "\n";
-        aft_time = micros(); //stop "timer"
-        last_time = aft_time - pre_time; // calculate time
-        pre_time = micros(); //start "timer"
-        xyz2 = get_xyz();
+            z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z axes
+            // divided by 1000000 because of microseconds and * 2 because area of parallelogram
+            //std::cout << x << "  " << y << "  " << z << "  " << last_time << "\n";
+            aft_time = micros(); //stop "timer"
+            last_time = aft_time - pre_time; // calculate time
+            pre_time = micros(); //start "timer"
+            xyz2 = get_xyz();
+        }
+    } else{
+        //run motors until 84 degrees are reached; 84 -> because it works better, motors need timer to stop
+        for (double/* x = 0, y = 0,*/ z = 0; z < degree - 6 && z > -degree + 6;) {
+
+            xyz = get_xyz();/*
+        x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
+        y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
+            z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z axes
+            // divided by 1000000 because of microseconds and * 2 because area of parallelogram
+            //std::cout << x << "  " << y << "  " << z << "  " << last_time << "\n";
+            aft_time = micros(); //stop "timer"
+            last_time = aft_time - pre_time; // calculate time
+            pre_time = micros(); //start "timer"
+            xyz2 = get_xyz();
+        }
     }
     motor->run(AdafruitDCMotor::kBrake);
 }
@@ -317,6 +348,7 @@ void controller() {
                     case 1:
                         if(value == 1){
                             // B
+                            left(true,0.0, true);
                             std::cout << "Knopf Button 1 Value 1";
                         } else{
 
@@ -325,6 +357,7 @@ void controller() {
                     case 2:
                         if(value == 1){
                             // X
+                            left(false,0.0, true);
                             std::cout << "Knopf Button 2 Value 1";
                         } else{
 
