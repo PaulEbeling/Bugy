@@ -56,6 +56,25 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
+
+bool controller_test(){
+    struct js_event event;
+    ssize_t bytesRead = read(gamepad, &event, sizeof(event));
+    if (event.type == JS_EVENT_BUTTON){
+        int button = event.number;
+        int value = event.value;
+        std::cout << "Bin in haupt Button:  " << button << "  Value:  " << value << "\n";
+
+        if(button == 3)
+            if(value == 0) {
+
+                return false;
+            }
+    }
+    return true;
+}
+
+
 /**
  * Drives a straight line with object recognition
  * @param milli_sec Duration how long it should drive forward, in ms
@@ -75,22 +94,13 @@ void straight(double milli_sec, struct js_event* alt) {
     double time = millis() + milli_sec;
 
     double z = 0;
-    while (milli_sec != 0 ? time - millis() > 0 : true ) {
+    while (milli_sec != 0 ? time - millis() > 0 : true) {
+        std::cout << distance() << "\n";
         xyz = get_xyz();
-        struct js_event event;
-        ssize_t bytesRead = read(gamepad, &event, sizeof(event));
-        if (event.type == JS_EVENT_BUTTON){
-            int button = event.number;
-            int value = event.value;
-            std::cout << "Bin in haupt Button:  " << button << "  Value:  " << value << "\n";
-
-            if(button == 3)
-                if(value == 0) {
-
-                    break;
-                }
-        }
+        if(milli_sec == 0 && !controller_test()) break;
         if (distance() <= limit) {
+            std::cout << "hallo\n";
+
             motor->run(AdafruitDCMotor::kRelease);
             motor2->run(AdafruitDCMotor::kRelease);
             bypass();
@@ -110,19 +120,7 @@ void straight(double milli_sec, struct js_event* alt) {
 
             while(old_z > correction ? z > correction : z < -correction){
                 xyz = get_xyz();
-                struct js_event event;
-                ssize_t bytesRead = read(gamepad, &event, sizeof(event));
-                if (event.type == JS_EVENT_BUTTON){
-                    int button = event.number;
-                    int value = event.value;
-                    std::cout << "Bin in correction Button:  " << button << "  Value:  " << value << "\n";
-
-                    if(button == 3) {
-                        break;
-                        if(value == 0){
-                        }
-                    }
-                }
+                if(milli_sec == 0 &&!controller_test()) break;
                 z > correction ? motor->run(AdafruitDCMotor::kForward) :
                     motor2->run(AdafruitDCMotor::kBackward);
                 delay(2);
@@ -237,7 +235,7 @@ int init() {
 
     //Controller
     // Open the Gamepad
-    gamepad = open("/dev/input/js0", O_RDONLY);
+    gamepad = open("/dev/input/js0", O_NONBLOCK);
 
     if (gamepad == -1) {
         std::cerr << "Gamepad could not be opened." << std::endl;
@@ -280,7 +278,6 @@ void controller() {
 
         if (bytesRead == -1) {
             std::cerr << "Fehler beim Lesen des Gamepad-Ereignisses." << std::endl;
-            break;
         }
 
         if (bytesRead == sizeof(event)) {
@@ -358,7 +355,6 @@ int main() {
     // Csignal für Abbruch über STRG-C
     signal(SIGINT, signalHandler);
     init();
-
     std::cout << "Please make Controller input";
     controller();
 
