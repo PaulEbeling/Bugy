@@ -56,8 +56,10 @@ void signalHandler(int signum) {
  * Drives a straight line with object recognition
  * @param milli_sec Duration how long it should drive forward, in ms
  */
-void straight(double milli_sec) {
+void straight(double milli_sec = 0, struct js_event event = nullptr) {
     //initialize vectors for xyz for movement correction
+
+    if(milli_sec == 0)
     std::vector<double> xyz(3);
     std::vector<double> xyz2(3);
     xyz2[0] = 0;
@@ -71,6 +73,15 @@ void straight(double milli_sec) {
 
     double z = 0;
     while (time - millis() > 0) {
+
+        if (event.type == JS_EVENT_BUTTON){
+            int button = event.number;
+            int value = event.value;
+
+            if(button == 3)
+                if(value == 0)
+                    break;
+        }
         xyz = get_xyz();
         if (distance() <= limit) {
             motor->run(AdafruitDCMotor::kRelease);
@@ -259,6 +270,7 @@ void controller() {
                 switch (button) {
                     case 0:
                         if(value == 1){
+                            // A
                             std::cout << "Knopf Button 0 Value 1";
                         } else{
 
@@ -266,6 +278,7 @@ void controller() {
                         break;
                     case 1:
                         if(value == 1){
+                            // B
                             std::cout << "Knopf Button 1 Value 1";
                         } else{
 
@@ -273,6 +286,7 @@ void controller() {
                         break;
                     case 2:
                         if(value == 1){
+                            // X
                             std::cout << "Knopf Button 2 Value 1";
                         } else{
 
@@ -280,6 +294,7 @@ void controller() {
                         break;
                     case 3:
                         if(value == 1){
+                            // Y
                             std::cout << "Knopf Button 3 Value 1";
                         } else{
 
