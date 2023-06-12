@@ -16,12 +16,12 @@
 #define motor_nr1 1
 #define motor_nr2 4
 #define speed 110
-#define correction_speed 100
+#define correction_speed 90
 #define echo 3 //wiringpi port for echo
 #define trigger 4 //wiringpi port for trigger
 #define led 5 //wiringpi port for led
 #define limit 10 //limit, how near the border is allowed to be in cm
-#define correction .5 //the correction for driving straight
+#define correction .2 //the correction for driving straight
 
 AdafruitMotorHAT hat;
 std::shared_ptr <AdafruitDCMotor> motor;
@@ -33,9 +33,9 @@ int init();
 
 double distance();
 
-void straight(double milli_sec = 0, struct js_event* event = nullptr);
+void straight(double milli_sec = 0, struct js_event *event = nullptr);
 
-void left(bool left = true, float degree = 90);
+void left(bool left = true, float degree = 90, bool manuel = false);
 
 void rectangle();
 
@@ -57,17 +57,16 @@ void signalHandler(int signum) {
 }
 
 
-bool controller_test(){
+bool controller_test(int btn) {
     struct js_event event;
     ssize_t bytesRead = read(gamepad, &event, sizeof(event));
-    if (event.type == JS_EVENT_BUTTON){
+    if (event.type == JS_EVENT_BUTTON) {
         int button = event.number;
         int value = event.value;
         std::cout << "Bin in haupt Button:  " << button << "  Value:  " << value << "\n";
 
-        if(button == 3)
-            if(value == 0) {
-
+        if (button == btn)
+            if (value == 0) {
                 return false;
             }
     }
@@ -79,7 +78,7 @@ bool controller_test(){
  * Drives a straight line with object recognition
  * @param milli_sec Duration how long it should drive forward, in ms
  */
-void straight(double milli_sec, struct js_event* alt) {
+void straight(double milli_sec, struct js_event *alt) {
     //initialize vectors for xyz for movement correction
 
     std::vector<double> xyz(3);
@@ -94,12 +93,11 @@ void straight(double milli_sec, struct js_event* alt) {
     double time = millis() + milli_sec;
 
     double z = 0;
-    while (milli_sec != 0 ? time - millis() > 0 : true) {
-        std::cout << distance() << "\n";
+    bool controller_break = true;
+    while ((milli_sec != 0 ? time - millis() > 0 : true) && controller_break) {
         xyz = get_xyz();
-        if(milli_sec == 0 && !controller_test()) break;
+        if (milli_sec == 0 && !controller_test(3)) controller_break = false;
         if (distance() <= limit) {
-            std::cout << "hallo\n";
 
             motor->run(AdafruitDCMotor::kRelease);
             motor2->run(AdafruitDCMotor::kRelease);
@@ -109,29 +107,27 @@ void straight(double milli_sec, struct js_event* alt) {
         }
 
         if (z > correction || z < -correction) {
-            motor->run(AdafruitDCMotor::kRelease);
-            motor2->run(AdafruitDCMotor::kRelease);
-            motor->setSpeed(correction_speed);
-            motor2->setSpeed(correction_speed);
+            //motor->run(AdafruitDCMotor::kRelease);
+            //motor2->run(AdafruitDCMotor::kRelease);
+            //motor->setSpeed(correction_speed);
+            //motor2->setSpeed(correction_speed);
 
             double old_z = z;
-            z > correction ? motor->run(AdafruitDCMotor::kForward) :
-                motor2->run(AdafruitDCMotor::kBackward);
 
-            while(old_z > correction ? z > correction : z < -correction){
+            while (old_z > correction ? z > correction : z < -correction && controller_break) {
                 xyz = get_xyz();
-                if(milli_sec == 0 &&!controller_test()) break;
-                z > correction ? motor->run(AdafruitDCMotor::kForward) :
-                    motor2->run(AdafruitDCMotor::kBackward);
+                if (milli_sec == 0 && !controller_test(3)) controller_break = false;
+                z > correction ? motor2->setSpeed(correction_speed) :
+                motor->setSpeed(correction_speed);
                 delay(2);
                 z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle like in left()
-                std::cout << 0 << "  " << 0 << "  " << z << "  " << last_time << "while \n";
+                //std::cout << 0 << "  " << 0 << "  " << z << "  " << last_time << "while \n";
                 aft_time = micros(); //stop "timer"
                 last_time = aft_time - pre_time; // calculate time
                 pre_time = micros(); //start "timer"
                 xyz2 = get_xyz();
-                motor->run(AdafruitDCMotor::kRelease);
-                motor2->run(AdafruitDCMotor::kRelease);
+                //motor->run(AdafruitDCMotor::kRelease);
+                //motor2->run(AdafruitDCMotor::kRelease);
             }
 
             motor->run(AdafruitDCMotor::kForward);
@@ -155,7 +151,7 @@ void straight(double milli_sec, struct js_event* alt) {
  * Dirves an 90 degree angle
  * @param left true it drives left round; false it is moving right round
  */
-void left(bool left, float degree, bool manuel = false) {
+void left(bool left, float degree, bool manuel) {
     //initialize vectors for xyz
     std::vector<double> xyz(3);
     std::vector<double> xyz2(3);
@@ -166,27 +162,19 @@ void left(bool left, float degree, bool manuel = false) {
     unsigned long pre_time = micros(), aft_time = micros(), last_time = 0; //initialize time
     motor->run(left ? AdafruitDCMotor::kBackward : AdafruitDCMotor::kForward);
 
-    if(manuel){
-        struct js_event event;
-        while (read(gamepad, &event, sizeof(event)) > 0){
-            if (event.type == JS_EVENT_BUTTON){
-                int button = event.number;
-                int value = event.value;
-                std::cout << "Bin in haupt Button:  " << button << "  Value:  " << value << "\n";
-
-                if(left){
-                    if(button == 2 && value == 0)
-                        break;
-                } else{
-                    if(button == 1 && value == 0)
-                        break;
-                }
+    if (manuel) {
+        double z = 0;
+        while (true) {
+            if(!controller_test(2) || !controller_test(1)) {
+                std::cout << "hahhahahh";
+                break;
             }
 
             xyz = get_xyz();/*
-        x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
-        y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
-            z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z axes
+            x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
+            y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
+            z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z
+            // axes
             // divided by 1000000 because of microseconds and * 2 because area of parallelogram
             //std::cout << x << "  " << y << "  " << z << "  " << last_time << "\n";
             aft_time = micros(); //stop "timer"
@@ -194,7 +182,7 @@ void left(bool left, float degree, bool manuel = false) {
             pre_time = micros(); //start "timer"
             xyz2 = get_xyz();
         }
-    } else{
+    } else {
         //run motors until 84 degrees are reached; 84 -> because it works better, motors need timer to stop
         for (double/* x = 0, y = 0,*/ z = 0; z < degree - 6 && z > -degree + 6;) {
 
@@ -307,9 +295,10 @@ void controller() {
         struct js_event event;
         ssize_t bytesRead = read(gamepad, &event, sizeof(event));
 
+        /*
         if (bytesRead == -1) {
             std::cerr << "Fehler beim Lesen des Gamepad-Ereignisses." << std::endl;
-        }
+        }*/
 
         if (bytesRead == sizeof(event)) {
             // Überprüfen Sie den Ereignistyp
@@ -319,16 +308,16 @@ void controller() {
                 int value = event.value;
                 std::cout << "Achse " << axis << " Wert: " << value << std::endl;
 
-                if(axis == 0 || axis == 2){
+                if (axis == 0 || axis == 2) {
                     // X Achse
                     // value is a signed integer between -32767 and +32767 representing the position of the joystick along that axis
-                } else if(axis == 1 || axis == 3){
+                } else if (axis == 1 || axis == 3) {
                     // Y Achse
                     // value is a signed integer between -32767 and +32767 representing the position of the joystick along that axis
                 }
 
                 if (axis == 0) {
-                  //  straight(100);
+                    //  straight(100);
                 }
             } else if (event.type == JS_EVENT_BUTTON) {
                 int button = event.number;
@@ -336,39 +325,39 @@ void controller() {
                 std::cout << "Testtss" << button << "  " << value << "\n";
                 switch (button) {
                     case 0:
-                        if(value == 1){
+                        if (value == 1) {
                             // A
                             straight(10);
 
                             std::cout << "Knopf Button 0 Value 1";
-                        } else{
+                        } else {
 
                         }
                         break;
                     case 1:
-                        if(value == 1){
+                        if (value == 1) {
                             // B
-                            left(true,0.0, true);
+                            left(false, 0.0, true);
                             std::cout << "Knopf Button 1 Value 1";
-                        } else{
+                        } else {
 
                         }
                         break;
                     case 2:
-                        if(value == 1){
+                        if (value == 1) {
                             // X
-                            left(false,0.0, true);
+                            left(true, 0.0, true);
                             std::cout << "Knopf Button 2 Value 1";
-                        } else{
+                        } else {
 
                         }
                         break;
                     case 3:
-                        if(value == 1){
+                        if (value == 1) {
                             // Y
                             std::cout << "Knopf Button 3 Value 1";
-                            straight(0,&event);
-                        } else{
+                            straight(0, &event);
+                        } else {
 
                         }
                         break;
@@ -387,9 +376,10 @@ void controller() {
 int main() {
     // Csignal für Abbruch über STRG-C
     signal(SIGINT, signalHandler);
-    init();
-    std::cout << "Please make Controller input";
-    controller();
+    if (init() == 0) {
+        std::cout << "Please make Controller input";
+        controller();
+    }
 
 
     straight(5000);
