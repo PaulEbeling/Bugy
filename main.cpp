@@ -9,9 +9,9 @@
 #include "adafruitmotorhat.h"
 #include <wiringPi.h>
 #include "gyro.h"
-#include <fcntl.h>
-#include <unistd.h>
-#include <linux/joystick.h>
+#include <fcntl.h> //Controller
+#include <unistd.h> //Controller
+#include <linux/joystick.h> //Controller
 
 #define motor_nr1 1
 #define motor_nr2 4
@@ -28,6 +28,7 @@ std::shared_ptr <AdafruitDCMotor> motor;
 std::shared_ptr <AdafruitDCMotor> motor2;
 int gamepad;
 
+void signalHandler(int signum);
 
 int init();
 
@@ -57,6 +58,57 @@ void signalHandler(int signum) {
 
     close(gamepad);
     exit(signum);
+}
+
+/**
+ * Initializes gyro Sensor and sets global variables for the motors and sets inputs/outputs for led and ultrasonic
+ * blaster
+ */
+int init() {
+    gyro_init();
+
+    //motor
+    motor = hat.getMotor(motor_nr1);
+    motor2 = hat.getMotor(motor_nr2);
+    motor->setSpeed(speed);
+    motor2->setSpeed(speed);
+
+    //ultrasonic blaster
+    wiringPiSetup();
+    pinMode(echo, INPUT);
+    pinMode(trigger, OUTPUT);
+
+    //led
+    pinMode(led, OUTPUT);
+
+    //Controller
+    //Open the Gamepad
+    std::cout << "Ready!";
+    gamepad = open("/dev/input/js0", O_NONBLOCK);
+    if (gamepad == -1) {
+        std::cerr << "Gamepad could not be opened." << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Measures the distance to an object
+ * @return distance in cm
+ */
+double distance() {
+    digitalWrite(trigger, HIGH);
+    delay(0.01);
+    digitalWrite(trigger, LOW);
+    while (digitalRead(echo) == LOW) {}
+    double time = micros(); //start timer
+    while (digitalRead(echo) == HIGH) {}
+    time = micros() - time;
+    //std::cout << time * 0.017  << "  " << time << "\n";
+
+    double dist = time * 0.017; // 340m/s * 100 -> 34000 in cm -> / 2 both directions -> /1000000
+    dist <= limit ? digitalWrite(led, HIGH) : digitalWrite(led, LOW);
+    return dist;
 }
 
 /**
@@ -194,57 +246,6 @@ void rectangle() {
         straight(3000);
         left();
     }
-}
-
-/**
- * Measures the distance to an object
- * @return distance in cm
- */
-double distance() {
-    digitalWrite(trigger, HIGH);
-    delay(0.01);
-    digitalWrite(trigger, LOW);
-    while (digitalRead(echo) == LOW) {}
-    double time = micros(); //start timer
-    while (digitalRead(echo) == HIGH) {}
-    time = micros() - time;
-    //std::cout << time * 0.017  << "  " << time << "\n";
-
-    double dist = time * 0.017; // 340m/s * 100 -> 34000 in cm -> / 2 both directions -> /1000000
-    dist <= limit ? digitalWrite(led, HIGH) : digitalWrite(led, LOW);
-    return dist;
-}
-
-/**
- * Initializes gyro Sensor and sets global variables for the motors and sets inputs/outputs for led and ultrasonic
- * blaster
- */
-int init() {
-    gyro_init();
-
-    //motor
-    motor = hat.getMotor(motor_nr1);
-    motor2 = hat.getMotor(motor_nr2);
-    motor->setSpeed(speed);
-    motor2->setSpeed(speed);
-
-    //ultrasonic blaster
-    wiringPiSetup();
-    pinMode(echo, INPUT);
-    pinMode(trigger, OUTPUT);
-
-    //led
-    pinMode(led, OUTPUT);
-
-    //Controller
-    //Open the Gamepad
-    std::cout << "Ready!";
-    gamepad = open("/dev/input/js0", O_NONBLOCK);
-    if (gamepad == -1) {
-        std::cerr << "Gamepad could not be opened." << std::endl;
-        return 1;
-    }
-    return 0;
 }
 
 /**
