@@ -121,7 +121,7 @@ void straight(double milli_sec) {
             motor2->setSpeed(speed);
         }
         z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle like in left()
-        std::cout << 0 << "  " << 0 << "  " << z << "  " << last_time << "\n";
+        //std::cout << 0 << "  " << 0 << "  " << z << "  " << last_time << "\n";
         aft_time = micros(); //stop "timer"
         last_time = aft_time - pre_time; // calculate time
         pre_time = micros(); //start "timer"
