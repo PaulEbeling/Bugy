@@ -224,7 +224,7 @@ void bypass() {
  */
 void controller() {
     // Hauptprogrammschleife
-    while (true) {
+    while (false) {
         // Lesen Sie die Gamepad-Ereignisse
         struct js_event event;
         ssize_t bytesRead = read(gamepad, &event, sizeof(event));
@@ -242,14 +242,52 @@ void controller() {
                 int value = event.value;
                 std::cout << "Achse " << axis << " Wert: " << value << std::endl;
 
+                if(axis == 0 || axis == 2){
+                    // X Achse
+                    // value is a signed integer between -32767 and +32767 representing the position of the joystick along that axis
+                } else if(axis == 1 || axis == 3){
+                    // Y Achse
+                    // value is a signed integer between -32767 and +32767 representing the position of the joystick along that axis
+                }
+
                 if (axis == 0) {
                     straight(100);
                 }
             } else if (event.type == JS_EVENT_BUTTON) {
-                // Knopfzustand erhalten
                 int button = event.number;
                 int value = event.value;
-                std::cout << "Button " << button << " gedrückt: " << value << std::endl;
+                switch (button) {
+                    case 0:
+                        if(value == 1){
+                            std::cout << "Knopf Button 0 Value 1";
+                        } else{
+
+                        }
+                        break;
+                    case 1:
+                        if(value == 1){
+                            std::cout << "Knopf Button 1 Value 1";
+                        } else{
+
+                        }
+                        break;
+                    case 2:
+                        if(value == 1){
+                            std::cout << "Knopf Button 2 Value 1";
+                        } else{
+
+                        }
+                        break;
+                    case 3:
+                        if(value == 1){
+                            std::cout << "Knopf Button 3 Value 1";
+                        } else{
+
+                        }
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
