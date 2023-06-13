@@ -144,13 +144,7 @@ void straight(double milli_sec) {
         }
 
         if (z > correction || z < -correction) {
-            //motor->run(AdafruitDCMotor::kRelease);
-            //motor2->run(AdafruitDCMotor::kRelease);
-            //motor->setSpeed(correction_speed);
-            //motor2->setSpeed(correction_speed);
-
             double old_z = z;
-
             while (old_z > correction ? z > correction : z < -correction && controller_break) {
                 xyz = get_xyz();
                 if (milli_sec == 0 && !controller_test(3)) controller_break = false;
@@ -202,11 +196,12 @@ void left(bool left, float degree, bool manuel) {
     if (manuel) {
         double z = 0;
         while (true) {
+            xyz = get_xyz();
             if (!controller_test(2) || !controller_test(1)) {
                 break;
             }
 
-            xyz = get_xyz();/*
+            /*
             x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
             y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
             z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z
@@ -221,10 +216,9 @@ void left(bool left, float degree, bool manuel) {
     } else {
         //run motors until 84 degrees are reached; 84 -> because it works better, motors need timer to stop
         for (double/* x = 0, y = 0,*/ z = 0; z < degree - 6 && z > -degree + 6;) {
-
             xyz = get_xyz();/*
-        x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
-        y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
+            x = x + ((last_time) * (xyz2[0] + xyz[0])) / (2000000);
+            y = y + ((last_time) * (xyz2[1] + xyz[1])) / (2000000);*/
             z = z + ((last_time) * (xyz2[2] + xyz[2])) / (2000000); //calculate angle: adding last and current z axes
             // divided by 1000000 because of microseconds and * 2 because area of parallelogram
             //std::cout << x << "  " << y << "  " << z << "  " << last_time << "\n";
@@ -331,6 +325,13 @@ void controller() {
                             // Y
                             //std::cout << "Knopf Button 3 Value 1";
                             straight(0);
+                        }
+                        break;
+                    case 5:
+                        if (value == 1) {
+                            //RB
+                            //std::cout << "Knopf Button 3 Value 1";
+                            rectangle();
                         }
                         break;
                     default:
